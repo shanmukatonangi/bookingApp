@@ -11,6 +11,23 @@ async function main(){
     await mongoose.connect("mongodb+srv://book:book@cluster0.uvydzhs.mongodb.net/bookingapp")
 }
 
+const userSchema=new mongoose.Schema({
+    name:{
+        type:String,
+        required:true
+    },
+    email:{
+        type:String,
+        required:true,
+        unique:true
+    },
+    phone:String,
+
+})
+
+const User= mongoose.model("User",userSchema)
+
+
 const tripSchema=new mongoose.Schema({
     from:{
         type:String,
@@ -48,23 +65,29 @@ const tripSchema=new mongoose.Schema({
     capacity:{
         type:Number,
         default:50
-    }
+    },
+    bookedUsers:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User"
+
+    }]
+
+    // bookedUser:[dgajgaggahgj,aggghdaghgjda,gfgagyaugeiia]
 
 })
 
 const Trip= mongoose.model("Trip",tripSchema)
 
 const bookingSchema=new mongoose.Schema({
-    name:{
-        type:String,
+    userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
         required:true
     },
-    email:{
-        type:String,
-        required:true
-    },
+    
     tripId:{
-        type:String,
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Trip",
         required:true
     },
     seat:{
@@ -81,8 +104,18 @@ const bookingSchema=new mongoose.Schema({
 
 const Booking=mongoose.model("Booking",bookingSchema)
 
+//localhost:8888/api/users
+app.post("/api/users",async(req,res)=>{
+    try {
+        const newuser=await User.create(req.body);
+        res.send("User Added Successfully")
+        
+    } catch (error) {
+        res.send(error)
+    }
 
-
+})
+//localhost:8888/api/trips
 app.post("/api/trips",async(req,res)=>{
     try{
         console.log(req.body)
@@ -149,6 +182,33 @@ app.get("/find/trip",async(req,res)=>{
 })
 
 
+app.post("/api/bookings",async(req,res)=>{
+    try{
+        const {userId,tripId}=req.body;
+        
+
+        let trip=await Trip.findById(tripId);
+        if(trip.capacity>0){
+            const newbooking=await Booking.create(req.body);
+            trip.bookedUsers.push(userId);
+            trip.capacity-=1;
+             await trip.save();
+             res.send("Booking Successful")
+        }else{
+            res.send("No Seats Available")
+        }
+
+
+
+
+
+
+
+    }catch(err){
+        res.send(err)
+    }
+
+})
 
 
 app.listen(8888,()=>{

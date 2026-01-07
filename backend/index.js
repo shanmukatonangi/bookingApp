@@ -1,10 +1,12 @@
 const express=require("express")
 const app=express()
 const mongoose=require("mongoose")
+const cors = require("cors")
 
 //mongodb+srv://book:book@cluster0.uvydzhs.mongodb.net/
 
 app.use(express.json())
+app.use(cors())
 
 main().catch(err => console.log(err));
 async function main(){
@@ -138,14 +140,17 @@ app.get("/trips",async(req,res)=>{
 // /find/trips?from=Hyderabad&to=Banglore
 app.get("/find/trip",async(req,res)=>{
     try {
+        //query={from:"hyderabad",to:"Banglore"}
         let info={};
         if(req.query.from){
             info.from=req.query.from
         };
+        //info={from:"hyderabad"}
 
         if(req.query.to){
             info.to=req.query.to
         }
+        //info={from:"hyderabad",to:"Banglore"}
 
         if(req.query.date){
             info.date=req.query.date
@@ -164,16 +169,14 @@ app.get("/find/trip",async(req,res)=>{
 
         // info={
         //     from:"hyderabad",
-        //     to:"Banglore",
-        //     date:"2025-12-25",
-        //     depature:"22:00",
-        //     arrival:"06:00",
-        //     oprators:"Shanmukh Travels"
+        //     to:"Delhi",
+        //    
         // }
 
        console.log(info)
         const specfictrips=await Trip.find(info)
         res.json(specfictrips)
+
 
     } catch (error) {
         res.send(error)
@@ -184,12 +187,20 @@ app.get("/find/trip",async(req,res)=>{
 
 app.post("/api/bookings",async(req,res)=>{
     try{
-        const {userId,tripId}=req.body;
+        console.log(req.body)
+        const {email,tripId}=req.body;
+        const user=await User.findOne({email:email});
+        const userId=user._id;
+        console.log(userId,tripId)
         
 
         let trip=await Trip.findById(tripId);
         if(trip.capacity>0){
-            const newbooking=await Booking.create(req.body);
+            const newbooking=await Booking.create({
+                userId:userId,
+                tripId:tripId,
+                seat:`S${trip.capacity}`
+            });
             trip.bookedUsers.push(userId);
             trip.capacity-=1;
              await trip.save();
